@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Ryan's Chat Room</title>
+    <style>
+      body {
+          margin: 0;
+          padding-bottom: 3rem;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      #form {
+          background: rgba(0, 0, 0, 0.15);
+          padding: 0.25rem;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          display: flex;
+          height: 3rem;
+          box-sizing: border-box;
+          backdrop-filter: blur(10px);
+      }
+
+      #input {
+          border: none;
+          padding: 0 1rem;
+          flex-grow: 1;
+          border-radius: 2rem;
+          margin: 0.25rem;
+      }
+      #input:focus {
+          outline: none;
+      }
+      #nickname {
+          border: none;
+          padding: 0 1rem;
+          flex-grow: 1;
+          border-radius: 2rem;
+          margin: 0.25rem;
+      }
+      #nickname:focus {
+          outline: none;
+      }
+
+      #form > button {
+          background: #333;
+          border: none;
+          padding: 0 1rem;
+          margin: 0.25rem;
+          border-radius: 3px;
+          outline: none;
+          color: #fff;
+      }
+
+      #messages {
+          list-style-type: none;
+          margin: 0;
+          padding: 0;
+      }
+      .message-container {
+          padding: 0.5rem 1rem;
+          border-bottom: 1px solid #ddd;
+          display: flex;
+          flex-direction: column;
+          background: #f9f9f9;
+          border-radius: 8px;
+          margin: 0.25rem 0;
+      }
+
+      .message-container:nth-child(odd) {
+          background: #efefef;
+      }
+
+      .message-header {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.85rem;
+          color: #666;
+          margin-bottom: 0.25rem;
+      }
+
+      .nickname {
+          font-weight: bold;
+          color: #4CAF50;
+      }
+
+      .timestamp {
+          font-style: italic;
+      }
+
+
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="nickname"/><button id="setnickname">Set Nickname</button>
+      <input type="hidden" id="input" autocomplete="off" /><button id="send" style="display: none;">Send</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        var messages = document.getElementById('messages');
+        var form = document.getElementById('form');
+        var input = document.getElementById('input');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', {
+                    msg: input.value,
+                    nickname: nickname.value
+                });
+                input.value = '';
+            } else if (nickname.value) {
+                socket.emit('set nickname', nickname.value);
+
+                //hide the nickname form
+                nickname.style.display = 'none';
+                setnickname.style.display = 'none';
+                input.style.display = 'block';
+                input.type = 'text';
+                send.style.display = 'block';
+            }
+        });
+
+        socket.on('chat message', function(msg, nickname) {
+            if (!nickname) {
+                nickname = 'Anonymous';
+            }
+
+            var date = new Date();
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var seconds = date.getSeconds();
+            var ampm = hours >= 12 ? 'pm' : 'am';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            minutes = minutes < 10 ? '0'+minutes : minutes;
+            seconds = seconds < 10 ? '0'+seconds : seconds;
+            var strTime = hours + ':' + minutes + ':' + seconds + ' ' + ampm;
+
+            // Create message container
+            var item = document.createElement('div');
+            item.classList.add('message-container');
+
+            // Nickname element
+            var nicknameEl = document.createElement('span');
+            nicknameEl.classList.add('nickname');
+            nicknameEl.textContent = nickname;
+
+            // Timestamp element
+            var timestampEl = document.createElement('span');
+            timestampEl.classList.add('timestamp');
+            timestampEl.textContent = `[${strTime}]`;
+
+            // Message content
+            var messageEl = document.createElement('div');
+            messageEl.classList.add('message-content');
+            messageEl.textContent = msg;
+
+            // Append elements
+            item.appendChild(nicknameEl);
+            item.appendChild(timestampEl);
+            item.appendChild(messageEl);
+
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('set nickname', function(nickname) {
+            // Add message that user has joined the chat
+            var item = document.createElement('div');
+            item.classList.add('message-container');
+            var messageEl = document.createElement('div');
+            messageEl.classList.add('message-content');
+            messageEl.textContent = `${nickname} has joined the chat`;
+            item.appendChild(messageEl);
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+    </script>
+  </body>
+</html>
